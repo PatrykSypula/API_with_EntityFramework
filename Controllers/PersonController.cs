@@ -7,31 +7,23 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class PersonController : ControllerBase
     {
+        private readonly DataContext _dataContext;
 
-        private static List<Person> people = new List<Person>
-            {
-                new Person {
-                    Id = 1,
-                    FirstName ="Patryk",
-                    LastName ="Sypuła",
-                    Place="Łódź" },
-                new Person {
-                    Id = 2,
-                    FirstName ="Patrick",
-                    LastName ="Sypula",
-                    Place="Lodz" }
-            };
+        public PersonController(DataContext dataContext)
+        {
+            _dataContext = dataContext;
+        }
 
         [HttpGet]//Show all people
         public async Task<ActionResult<List<Person>>> Get()
         {
-            return Ok(people);
+            return Ok(await _dataContext.People_.ToListAsync());
         }
 
         [HttpGet("{id}")]//Show particular person by id
         public async Task<ActionResult<Person>> Get(int id)
         {
-            var person = people.Find(p => p.Id == id);
+            var person = await _dataContext.People_.FindAsync(id);
             if (person == null)
             {
                 return BadRequest("Person not found.");
@@ -45,39 +37,47 @@ namespace WebApplication2.Controllers
         [HttpPost]//Add person
         public async Task<ActionResult<List<Person>>> AddPerson(Person person)
         {
-            people.Add(person);
-            return Ok(people);
+            _dataContext.People_.Add(person);
+            await _dataContext.SaveChangesAsync();
+            return Ok(await _dataContext.People_.ToListAsync());
         }
 
         [HttpPut]//Update person
         public async Task<ActionResult<List<Person>>> UpdatePerson(Person request)
         {
-            var person = people.Find(p => p.Id == request.Id);
-            if (person == null)
+            var dbPerson = await _dataContext.People_.FindAsync(request.Id);
+            if (dbPerson == null)
             {
                 return BadRequest("Person not found.");
             }
             else
             {
-                person.FirstName = request.FirstName;
-                person.LastName = request.LastName;
-                person.Place = request.Place;
+                dbPerson.FirstName = request.FirstName;
+                dbPerson.LastName = request.LastName;
+                dbPerson.Place = request.Place;
+
+                await _dataContext.SaveChangesAsync();
+
+                return Ok(await _dataContext.People_.ToListAsync());
             }
-            return Ok(people);
+            
         }
 
         [HttpDelete("{id}")]//Delete particular person by id
         public async Task<ActionResult<List<Person>>> Delete(int id)
         {
-            var person = people.Find(p => p.Id == id);
-            if (person == null)
+            var dbPerson = await _dataContext.People_.FindAsync(id);
+            if (dbPerson == null)
             {
                 return BadRequest("Person not found.");
             }
             else
             {
-                people.Remove(person);
-                return Ok(people);
+                _dataContext.People_.Remove(dbPerson);
+
+                await _dataContext.SaveChangesAsync();
+
+                return Ok(await _dataContext.People_.ToListAsync());
             }
         }
     }
